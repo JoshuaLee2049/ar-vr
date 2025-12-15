@@ -2,74 +2,251 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City RPG: 苗栗時空探險</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Line Style: 勝興時空熱線</title>
 <style>
-  body { font-family: 'PingFang TC', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; justify-content: center; height: 100vh; }
-  .phone-frame { width: 375px; height: 750px; background: #fff; border: 12px solid #333; border-radius: 40px; overflow: hidden; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
-  .header { background: #4a90e2; color: #fff; padding: 20px; text-align: center; font-weight: bold; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center; }
-  .status-bar { font-size: 12px; opacity: 0.8; }
+  /* --- 基礎設定 --- */
+  body { font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', sans-serif; background-color: #222; margin: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
   
-  /* 任務卡片區域 */
-  .quest-card { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); margin: 15px; padding: 15px; border-radius: 15px; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); animation: slideDown 0.5s ease-out; }
-  .quest-title { font-size: 1.2em; font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; }
-  .quest-desc { font-size: 0.9em; line-height: 1.4; opacity: 0.95; }
+  /* --- 手機外框 --- */
+  .phone-frame { 
+    width: 375px; height: 100%; max-height: 812px; 
+    background-color: #7280a8; /* LINE 預設底色 */
+    position: relative; 
+    display: flex; flex-direction: column; 
+    overflow: hidden;
+    /* 背景圖片：懷舊車站 */
+    background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&q=80&w=800');
+    background-size: cover;
+    background-position: center;
+  }
   
-  /* 聊天區域 */
-  .chat-area { flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; }
-  .message { margin-bottom: 15px; max-width: 80%; padding: 12px; border-radius: 15px; font-size: 0.95em; line-height: 1.4; position: relative; }
-  .npc-message { background: #fff; color: #333; border-bottom-left-radius: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); align-self: flex-start; }
-  .user-message { background: #4a90e2; color: #fff; margin-left: auto; border-bottom-right-radius: 2px; }
-  .avatar { width: 35px; height: 35px; border-radius: 50%; background: #ddd; position: absolute; bottom: -20px; left: 0; background-size: cover; border: 2px solid #fff; }
-  .npc-name { font-size: 0.8em; color: #666; margin-bottom: 4px; margin-left: 5px; }
+  /* 在大螢幕時加個邊框像手機，手機上則全螢幕 */
+  @media (min-width: 500px) {
+    .phone-frame { height: 750px; border-radius: 40px; border: 12px solid #333; margin-top: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  }
 
-  /* 底部操作區 */
-  .input-area { padding: 15px; background: #fff; border-top: 1px solid #eee; display: flex; gap: 10px; align-items: center; }
-  .action-btn { width: 40px; height: 40px; border-radius: 50%; background: #f0f2f5; display: flex; align-items: center; justify-content: center; color: #555; cursor: pointer; border: none; }
-  .mic-btn { background: #ff5252; color: #fff; }
-  .text-input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #ddd; outline: none; }
+  /* --- Header (導航欄) --- */
+  .header { 
+    background: rgba(43, 53, 69, 0.9); /* 深色半透明 */
+    color: #fff; padding: 15px 20px; 
+    display: flex; align-items: center; gap: 15px;
+    font-size: 1.1em; font-weight: bold;
+    backdrop-filter: blur(5px);
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .back-btn { font-size: 1.2em; cursor: pointer; }
+  .chat-title { flex: 1; }
+  .header-icons { font-size: 1.2em; letter-spacing: 15px; }
 
-  /* 動畫 */
-  @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  /* --- 聊天區域 --- */
+  .chat-area { 
+    flex: 1; padding: 20px 10px; 
+    overflow-y: auto; 
+    display: flex; flex-direction: column; gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  /* --- 訊息群組 --- */
+  .msg-row { display: flex; align-items: flex-start; margin-bottom: 10px; }
+  .msg-row.me { justify-content: flex-end; }
+  
+  /* 頭像 */
+  .avatar { 
+    width: 40px; height: 40px; border-radius: 50%; 
+    background-size: cover; background-position: center;
+    margin-right: 10px; border: 1px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+  }
+  .msg-content { max-width: 70%; position: relative; }
+  .sender-name { font-size: 0.75em; color: #fff; margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
+  /* 氣泡樣式 */
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 0.95em;
+    line-height: 1.4;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  /* 對方 (左側) */
+  .msg-row.other .bubble { background: #fff; color: #333; border-top-left-radius: 2px; }
+  .msg-row.other .bubble::before {
+    content: ""; position: absolute; left: -6px; top: 0;
+    border-top: 0px solid transparent; border-right: 10px solid #fff; border-bottom: 10px solid transparent;
+  }
+
+  /* 我 (右側) */
+  .msg-row.me .bubble { background: #98e165; color: #000; border-top-right-radius: 2px; }
+  .msg-row.me .bubble::before {
+    content: ""; position: absolute; right: -6px; top: 0;
+    border-top: 0px solid transparent; border-left: 10px solid #98e165; border-bottom: 10px solid transparent;
+  }
+
+  /* 時間與已讀 */
+  .meta-info {
+    font-size: 0.7em; color: rgba(255,255,255,0.8);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    margin: 0 6px 5px 6px; text-align: right; min-width: 30px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  .msg-row.me .meta-info { text-align: left; } /* 我的訊息時間在左邊 */
+  
+  /* 排版修正：把時間放到氣泡旁邊 */
+  .msg-row.other { flex-direction: row; }
+  .msg-row.me { flex-direction: row-reverse; }
+
+  /* --- 底部輸入區 --- */
+  .input-bar {
+    background: #fff; padding: 10px;
+    display: flex; align-items: center; gap: 10px;
+    border-top: 1px solid #ddd;
+  }
+  .plus-icon { color: #aaa; font-size: 1.5em; cursor: pointer; }
+  .text-input { 
+    flex: 1; background: #f0f0f5; border: none; 
+    padding: 10px 15px; border-radius: 20px; 
+    outline: none; font-size: 16px; 
+  }
+  .send-btn { 
+    color: #2d68c4; font-weight: bold; cursor: pointer; 
+    border: none; background: none; padding: 5px;
+  }
+  .send-btn:disabled { color: #ccc; }
+
 </style>
 </head>
 <body>
 
 <div class="phone-frame">
   <div class="header">
-    <span>🧭 實境解謎</span>
-    <span class="status-bar">LV. 5 探索者</span>
+    <div class="back-btn">❮</div>
+    <div class="chat-title">勝興車站 站長 (鬼魂?)</div>
+    <div class="header-icons">📞 ☰</div>
   </div>
 
-  <div class="quest-card">
-    <div class="quest-title">📜 當前任務：尋找消失的藍染</div>
-    <div class="quest-desc">請在南庄老街尋找百年古井，並拍下井邊的刻字。AI 將解讀其中的秘密...</div>
+  <div class="chat-area" id="chatArea">
+    
+    <div class="msg-row other">
+      <div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster');"></div>
+      <div class="msg-content">
+        <div class="sender-name">站長</div>
+        <div class="bubble">末班車已經開走了...年輕人，你怎麼還在月台上逗留？🚂</div>
+      </div>
+      <div class="meta-info">
+        <span>下午 11:58</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.75em; margin: 10px 0; background: rgba(0,0,0,0.2); display: inline-block; padding: 2px 10px; border-radius: 10px; align-self: center;">
+      今天
+    </div>
+
   </div>
 
-  <div class="chat-area">
-    <div class="npc-name">🤖 虛擬嚮導：老街守護靈</div>
-    <div class="message npc-message">
-      歡迎來到南庄！我是這裡的守護靈。這口井已經有百年歷史了，你能告訴我，當年居民是如何使用它的嗎？
-      <div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/bottts/svg?seed=Felix');"></div>
-    </div>
-
-    <div class="message user-message">
-      我找到了！旁邊好像有以前洗衣服的石板？
-    </div>
-
-    <div class="npc-name">🤖 虛擬嚮導：老街守護靈</div>
-    <div class="message npc-message">
-      沒錯！那正是昔日婦女聚集洗衣、交換情報的「八卦中心」呢！📸 快拍張照傳給我，我給你下一個線索！
-      <div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/bottts/svg?seed=Felix');"></div>
-    </div>
-  </div>
-
-  <div class="input-area">
-    <button class="action-btn">📷</button>
-    <input type="text" class="text-input" placeholder="輸入回答或線索...">
-    <button class="action-btn mic-btn">🎙️</button>
+  <div class="input-bar">
+    <div class="plus-icon">＋</div>
+    <div class="plus-icon">📷</div>
+    <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
+    <button class="send-btn" id="sendBtn">傳送</button>
   </div>
 </div>
+
+<script>
+  const chatArea = document.getElementById('chatArea');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // 取得現在時間 (格式 HH:mm)
+  function getCurrentTime() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const period = hours >= 12 ? '下午' : '上午';
+    if (hours > 12) hours -= 12;
+    if (hours === 0) hours = 12;
+    return `${period} ${hours}:${minutes}`;
+  }
+
+  // 傳送訊息功能
+  function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    // 1. 新增我的訊息
+    addMessage(text, 'me');
+    messageInput.value = '';
+
+    // 2. 模擬對方回覆
+    setTimeout(() => {
+      // 模擬「已讀」 (在真實 App 中需要更新上一則訊息的狀態，這裡簡化)
+      const readStatus = document.createElement('span');
+      readStatus.textContent = '已讀';
+      readStatus.style.display = 'block';
+      // 這裡只是示範，實際上要抓到最後一則 'me' 的 meta-info
+      
+      simulateReply();
+    }, 1000);
+  }
+
+  // 新增訊息到 DOM
+  function addMessage(text, type) {
+    const row = document.createElement('div');
+    row.className = `msg-row ${type}`;
+    
+    const time = getCurrentTime();
+
+    // 根據是「我」還是「對方」組裝 HTML
+    if (type === 'me') {
+      row.innerHTML = `
+        <div class="meta-info">
+          <span style="color:#b3e283; font-size:0.9em;">已讀</span>
+          <span>${time}</span>
+        </div>
+        <div class="msg-content">
+          <div class="bubble">${text}</div>
+        </div>
+      `;
+    } else {
+      row.innerHTML = `
+        <div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster');"></div>
+        <div class="msg-content">
+          <div class="sender-name">站長</div>
+          <div class="bubble">${text}</div>
+        </div>
+        <div class="meta-info">
+          <span>${time}</span>
+        </div>
+      `;
+    }
+
+    chatArea.appendChild(row);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  // 模擬 NPC 邏輯
+  function simulateReply() {
+    const replies = [
+      "這張票...是昭和年份的？你從哪裡拿到的？",
+      "聽得到嗎？遠方好像有汽笛聲...",
+      "別往隧道裡面走，那裡沒有光。",
+      "請出示您的車票，這裡不接受悠遊卡喔。"
+    ];
+    const randomReply = replies[Math.floor(Math.random() * replies.length)];
+    addMessage(randomReply, 'other');
+  }
+
+  // 事件監聽
+  sendBtn.addEventListener('click', sendMessage);
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+</script>
 
 </body>
 </html>
