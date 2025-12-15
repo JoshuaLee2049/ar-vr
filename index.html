@@ -3,187 +3,57 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>City RPG: 舊山線時空探險 - 苗栗整合版</title>
+<title>City RPG: 舊山線時空探險 - 苗栗整合版 + RAG + 記憶NPC</title>
 
 <style>
-  body {
-    background-color:#000; margin:0;
-    font-family:'PingFang TC','Microsoft JhengHei',monospace;
-    overflow:hidden; height:100vh;
-    display:flex; justify-content:center; align-items:stretch;
-  }
-
-  .phone-frame{
-    width:100%; max-width:450px; height:100%;
-    position:relative; overflow:hidden;
-    background:#111;
-  }
+  body{background-color:#000;margin:0;font-family:'PingFang TC','Microsoft JhengHei',monospace;overflow:hidden;height:100vh;display:flex;justify-content:center;align-items:stretch}
+  .phone-frame{width:100%;max-width:450px;height:100%;position:relative;overflow:hidden;background:#111}
 
   /* Phase 1 */
-  .signal-overlay{
-    position:absolute; inset:0;
-    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 1px, transparent 2px);
-    pointer-events:none; z-index:100;
-    animation: scanline 8s linear infinite;
-  }
-  .glitch-screen{
-    position:absolute; inset:0;
-    background:#000; color:#0f0; z-index:50;
-    display:flex; flex-direction:column; justify-content:center; align-items:center;
-    text-align:center; padding:20px; transition:opacity 1s;
-  }
-  .glitch-text{
-    font-size:1.2em;
-    text-shadow:2px 0 red, -2px 0 blue;
-    animation: glitch 0.3s cubic-bezier(.25,.46,.45,.94) both infinite;
-  }
+  .signal-overlay{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.15) 1px,transparent 2px);pointer-events:none;z-index:100;animation:scanline 8s linear infinite}
+  .glitch-screen{position:absolute;inset:0;background:#000;color:#0f0;z-index:50;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;transition:opacity 1s}
+  .glitch-text{font-size:1.2em;text-shadow:2px 0 red,-2px 0 blue;animation:glitch .3s cubic-bezier(.25,.46,.45,.94) both infinite}
 
   /* Phase 2/3 */
-  .chat-interface{
-    width:100%; height:100%;
-    display:flex; flex-direction:column;
-    background-image:
-      linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
-      url('https://images.unsplash.com/photo-1517414628890-5348538e8bf0?auto=format&fit=crop&q=80&w=800');
-    background-size:cover; background-position:center;
-    opacity:0; transition:opacity 1s;
-  }
-  .header{
-    background:rgba(0,0,0,0.8); color:#fff;
-    padding:15px; display:flex; align-items:center;
-    border-bottom:1px solid #333;
-  }
-  .chat-area{
-    flex:1; padding:20px 12px;
-    overflow-y:auto; display:flex; flex-direction:column; gap:18px;
-    scroll-behavior:smooth;
-  }
+  .chat-interface{width:100%;height:100%;display:flex;flex-direction:column;background-image:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)),url('https://images.unsplash.com/photo-1517414628890-5348538e8bf0?auto=format&fit=crop&q=80&w=800');background-size:cover;background-position:center;opacity:0;transition:opacity 1s}
+  .header{background:rgba(0,0,0,.8);color:#fff;padding:15px;display:flex;align-items:center;border-bottom:1px solid #333}
+  .chat-area{flex:1;padding:20px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}
 
-  .msg-row{
-    display:flex; align-items:flex-end;
-    margin-bottom:5px;
-    opacity:0; transform:translateY(10px);
-    transition:all 0.5s;
-  }
-  .msg-row.show{ opacity:1; transform:translateY(0); }
-  .msg-row.me{ justify-content:flex-end; }
-  .msg-row.other{ justify-content:flex-start; }
+  .msg-row{display:flex;align-items:flex-end;margin-bottom:5px;opacity:0;transform:translateY(10px);transition:all .5s}
+  .msg-row.show{opacity:1;transform:translateY(0)}
+  .msg-row.me{justify-content:flex-end}
+  .msg-row.other{justify-content:flex-start}
 
-  .avatar{
-    width:42px; height:42px; border-radius:50%;
-    border:2px solid #fff; margin-right:10px;
-    background-size:cover; filter:sepia(0.3);
-    flex-shrink:0;
-  }
-  .sender-name{
-    color:#ccc; font-size:0.8em;
-    margin-bottom:4px; margin-left:2px;
-    text-shadow:1px 1px 2px black;
-  }
+  .avatar{width:42px;height:42px;border-radius:50%;border:2px solid #fff;margin-right:10px;background-size:cover;filter:sepia(.3);flex-shrink:0}
+  .sender-name{color:#ccc;font-size:.8em;margin-bottom:4px;margin-left:2px;text-shadow:1px 1px 2px black}
 
-  .bubble{
-    position:relative;
-    padding:10px 14px; border-radius:18px;
-    font-size:0.95em; line-height:1.5;
-    max-width:240px;
-    box-shadow:0 2px 4px rgba(0,0,0,0.3);
-    word-break:break-word;
-  }
+  .bubble{position:relative;padding:10px 14px;border-radius:18px;font-size:.95em;line-height:1.5;max-width:240px;box-shadow:0 2px 4px rgba(0,0,0,.3);word-break:break-word}
+  .msg-row.other .bubble{background:rgba(255,255,255,.95);color:#333;border-top-left-radius:2px}
+  .msg-row.other .bubble::before{content:"";position:absolute;left:-8px;top:0;border-right:12px solid rgba(255,255,255,.95);border-bottom:10px solid transparent}
+  .msg-row.me .bubble{background:#98e165;color:#000;border-top-right-radius:2px}
+  .msg-row.me .bubble::before{content:"";position:absolute;right:-8px;top:0;border-left:12px solid #98e165;border-bottom:10px solid transparent}
 
-  .msg-row.other .bubble{
-    background:rgba(255,255,255,0.95); color:#333;
-    border-top-left-radius:2px;
-  }
-  .msg-row.other .bubble::before{
-    content:"";
-    position:absolute; left:-8px; top:0;
-    border-right:12px solid rgba(255,255,255,0.95);
-    border-bottom:10px solid transparent;
-  }
+  .meta-info{font-size:.7em;color:rgba(255,255,255,.55);margin:0 8px;white-space:nowrap}
+  .read-status{margin-right:6px;opacity:.9}
 
-  .msg-row.me .bubble{
-    background:#98e165; color:#000;
-    border-top-right-radius:2px;
-  }
-  .msg-row.me .bubble::before{
-    content:"";
-    position:absolute; right:-8px; top:0;
-    border-left:12px solid #98e165;
-    border-bottom:10px solid transparent;
-  }
+  .ticket-img{width:100%;border-radius:4px;border:2px solid #777;filter:sepia(.8) contrast(1.2);display:block}
 
-  .meta-info{
-    font-size:0.7em;
-    color:rgba(255,255,255,0.55);
-    margin:0 8px; white-space:nowrap;
-  }
-  .read-status{ margin-right:6px; opacity:0.9; }
+  .system-card{align-self:center;background:rgba(13,100,100,.7);color:#fff;padding:5px 15px;border-radius:20px;font-size:.75em;margin:10px 0;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(4px)}
+  .thinking-dots::after{content:"...";display:inline-block;overflow:hidden;vertical-align:bottom;width:0;animation:dots 1.2s steps(4,end) infinite}
 
-  .ticket-img{
-    width:100%;
-    border-radius:4px;
-    border:2px solid #777;
-    filter:sepia(0.8) contrast(1.2);
-    display:block;
-  }
+  .input-bar{background:#222;padding:10px;border-top:1px solid #444;display:flex;align-items:center;gap:10px}
+  .icon-btn{font-size:1.4em;padding:5px;cursor:pointer;color:#ccc;user-select:none}
+  .text-input{flex:1;background:#333;border:none;padding:10px 15px;border-radius:20px;outline:none;font-size:16px;color:white}
+  .send-btn{color:#5dade2;font-weight:bold;cursor:pointer;border:none;background:none;padding:5px}
+  .send-btn:disabled{opacity:.4;cursor:not-allowed}
 
-  .system-card{
-    align-self:center;
-    background:rgba(13,100,100,0.7);
-    color:#fff;
-    padding:5px 15px;
-    border-radius:20px;
-    font-size:0.75em;
-    margin:10px 0;
-    border:1px solid rgba(255,255,255,0.3);
-    backdrop-filter:blur(4px);
-  }
-  .thinking-dots::after{
-    content:"...";
-    display:inline-block;
-    overflow:hidden;
-    vertical-align:bottom;
-    width:0;
-    animation:dots 1.2s steps(4,end) infinite;
-  }
+  .shutter-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:999}
+  .flash-active{animation:flashAnim .3s ease-out forwards}
 
-  .input-bar{
-    background:#222; padding:10px;
-    border-top:1px solid #444;
-    display:flex; align-items:center; gap:10px;
-  }
-  .icon-btn{
-    font-size:1.4em; padding:5px;
-    cursor:pointer; color:#ccc;
-    user-select:none;
-  }
-  .text-input{
-    flex:1; background:#333; border:none;
-    padding:10px 15px; border-radius:20px;
-    outline:none; font-size:16px; color:white;
-  }
-  .send-btn{
-    color:#5dade2; font-weight:bold;
-    cursor:pointer; border:none; background:none; padding:5px;
-  }
-  .send-btn:disabled{ opacity:0.4; cursor:not-allowed; }
-
-  .shutter-flash{
-    position:absolute; inset:0;
-    background:#fff; opacity:0;
-    pointer-events:none; z-index:999;
-  }
-  .flash-active{ animation: flashAnim 0.3s ease-out forwards; }
-
-  @keyframes scanline{ 0%{background-position:0% 0%} 100%{background-position:0% 100%} }
-  @keyframes glitch{
-    0%{transform:translate(0)}
-    40%{transform:translate(2px,-2px)}
-    80%{transform:translate(-2px,2px)}
-    100%{transform:translate(0)}
-  }
-  @keyframes flashAnim{ 0%{opacity:0} 30%{opacity:0.9} 100%{opacity:0} }
-  @keyframes dots{ to{ width:1.2em } }
+  @keyframes scanline{0%{background-position:0% 0%}100%{background-position:0% 100%}}
+  @keyframes glitch{0%{transform:translate(0)}40%{transform:translate(2px,-2px)}80%{transform:translate(-2px,2px)}100%{transform:translate(0)}}
+  @keyframes flashAnim{0%{opacity:0}30%{opacity:.9}100%{opacity:0}}
+  @keyframes dots{to{width:1.2em}}
 </style>
 </head>
 
@@ -209,14 +79,14 @@
         <div class="icon-btn" id="cameraBtn">📷</div>
         <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
         <div class="icon-btn">＋</div>
-        <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
+        <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息…（RAG:問題 / 資料庫 / 清除記憶）">
         <button class="send-btn" id="sendBtn" disabled>傳送</button>
       </div>
     </div>
   </div>
 
 <script>
-  // ===== 可換主題的核心目標（這次改苗栗）=====
+  // ===== 可換主題的核心目標 =====
   const TARGET_CITY = "苗栗";
   const TARGET_AREA = "三義";
   const TARGET_LANDMARK = "龍騰斷橋";
@@ -236,7 +106,73 @@
   let gameState = 0;
   let isNpcTyping = false;
 
-  // Helpers
+  // ===============================
+  // ✅ 記憶 NPC（localStorage）
+  // ===============================
+  const MEMORY_KEY = "old_mountain_npc_memory_v1";
+
+  function defaultMemory() {
+    return {
+      progress: { confirmedGoal: false, photoSent: false, finished: false },
+      stats: { offTopicCount: 0, lastHintAt: 0 },
+      context: { playerName: null, lastUserText: "", lastUserAt: Date.now() }
+    };
+  }
+
+  function loadMemory() {
+    try {
+      const raw = localStorage.getItem(MEMORY_KEY);
+      if (!raw) return defaultMemory();
+      const m = JSON.parse(raw);
+      const d = defaultMemory();
+      return {
+        ...d, ...m,
+        progress: { ...d.progress, ...(m.progress || {}) },
+        stats: { ...d.stats, ...(m.stats || {}) },
+        context: { ...d.context, ...(m.context || {}) },
+      };
+    } catch {
+      return defaultMemory();
+    }
+  }
+
+  let npcMemory = loadMemory();
+
+  function saveMemory() {
+    try { localStorage.setItem(MEMORY_KEY, JSON.stringify(npcMemory)); } catch {}
+  }
+
+  function clearMemory() {
+    npcMemory = defaultMemory();
+    try { localStorage.removeItem(MEMORY_KEY); } catch {}
+  }
+
+  function rememberUser(text) {
+    npcMemory.context.lastUserText = text;
+    npcMemory.context.lastUserAt = Date.now();
+    const m = text.match(/我(叫|是)\s*([A-Za-z0-9\u4e00-\u9fff]{1,12})/);
+    if (m && m[2]) npcMemory.context.playerName = m[2];
+    saveMemory();
+  }
+
+  function markProgress(key, value = true) {
+    npcMemory.progress[key] = value;
+    saveMemory();
+  }
+
+  function canHintNow() {
+    const now = Date.now();
+    return (now - (npcMemory.stats.lastHintAt || 0)) > 12000;
+  }
+
+  function recordHint() {
+    npcMemory.stats.lastHintAt = Date.now();
+    saveMemory();
+  }
+
+  // ===============================
+  // ✅ 基本 UI / 安全
+  // ===============================
   const pad2 = (n) => String(n).padStart(2, '0');
 
   function getCurrentTime(){
@@ -262,7 +198,6 @@
     return safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
   }
 
-  // addMessage(type, text, isImage=false, forceNpcName=false)
   function addMessage(type, text, isImage=false, forceNpcName=false){
     const row = document.createElement('div');
     row.className = 'msg-row';
@@ -309,7 +244,186 @@
     return div;
   }
 
+  function npcSay(text, weak=true){
+    addMessage('other', text, false, weak);
+  }
+
+  // ===============================
+  // ✅ RAG 資料庫（前端版，可擴充）
+  // ===============================
+  const RAG_DB = [
+    {
+      id: "eq-1935",
+      title: "1935 新竹–台中地震",
+      tags: ["地震","1935","新竹台中","三義","苗栗","震央","規模"],
+      source: "彙整",
+      text: "1935-04-21 清晨發生新竹—台中地震（常見資料記載規模約 7 級），震央在今苗栗三義一帶，造成重大傷亡與橋梁、鐵道設施毀損。"
+    },
+    {
+      id: "old-mountain-line",
+      title: "舊山線（勝興—泰安段）",
+      tags: ["舊山線","鐵道","隧道","彎道","坡度","三義","泰安","勝興"],
+      source: "彙整",
+      text: "舊山線是縱貫鐵路早期穿越山區的重要路段，以大坡度、大彎道與多隧道聞名；勝興車站是著名鐵道旅遊節點。"
+    },
+    {
+      id: "shengxing-station",
+      title: "勝興車站（歷史與旅遊）",
+      tags: ["勝興車站","十六份","古蹟","舊山線","三義"],
+      source: "彙整",
+      text: "勝興車站位於苗栗三義，與舊山線工程密切相關，是鐵道文化景點；常被遊客視為舊山線的代表性據點。"
+    },
+    {
+      id: "longteng-bridge",
+      title: "魚藤坪/龍騰斷橋（震災記憶）",
+      tags: ["龍騰斷橋","魚藤坪","斷橋","震毀","橋墩","磚拱"],
+      source: "彙整",
+      text: "魚藤坪斷橋又稱龍騰斷橋，早期以磚拱橋墩結構著稱；1935 地震後受損成斷橋遺構，成為今日著名地標。"
+    },
+    {
+      id: "yutengping-new-bridge",
+      title: "魚藤坪新橋（震後復通）",
+      tags: ["魚藤坪新橋","1938","重建","新橋","耐震"],
+      source: "彙整",
+      text: "地震後為恢復通行，後續另建魚藤坪新橋（常見記載 1938 前後完成），與舊橋遺構並列成為經典景觀。"
+    }
+  ];
+
+  function normalizeText(s){
+    return (s || "")
+      .toLowerCase()
+      .replace(/[\u3000\s]+/g, " ")
+      .replace(/[，。、《》「」『』（）()【】\[\]{}<>!！?？:：;；、"'\-_/\\|@#$%^&*+=~`]/g, " ")
+      .trim();
+  }
+
+  function isCJK(ch){
+    const code = ch.charCodeAt(0);
+    return (code >= 0x4E00 && code <= 0x9FFF) || (code >= 0x3400 && code <= 0x4DBF);
+  }
+
+  function tokenize(query){
+    const raw = normalizeText(query);
+    if(!raw) return [];
+    const words = raw.split(/\s+/).filter(Boolean);
+
+    const cjkOnly = raw.replace(/[a-z0-9\s]/g, "");
+    const cjkChars = [...cjkOnly].filter(ch => isCJK(ch));
+    const bigrams = [];
+    for(let i=0;i<cjkChars.length-1;i++){
+      bigrams.push(cjkChars[i] + cjkChars[i+1]);
+    }
+    return [...words, ...bigrams];
+  }
+
+  function scoreDoc(query, queryTokens, doc){
+    const qNorm = normalizeText(query);
+    const docText = normalizeText(doc.title + " " + doc.tags.join(" ") + " " + doc.text);
+    const docTokens = new Set(tokenize(docText));
+
+    let score = 0;
+    for(const t of queryTokens){
+      if(!t) continue;
+      if(docTokens.has(t)) score += 2;
+      if(docText.includes(t)) score += 1;
+    }
+
+    for(const tag of doc.tags){
+      const tagNorm = normalizeText(tag);
+      if(tagNorm && qNorm.includes(tagNorm)) score += 2;
+    }
+    return score;
+  }
+
+  function ragSearch(query, k=3){
+    const qTokens = tokenize(query);
+    if(qTokens.length === 0) return [];
+    return RAG_DB
+      .map(doc => ({ doc, score: scoreDoc(query, qTokens, doc) }))
+      .filter(x => x.score > 0)
+      .sort((a,b) => b.score - a.score)
+      .slice(0, k);
+  }
+
+  function ragSnippet(text, maxLen=90){
+    const s = (text || "").replace(/\s+/g, " ").trim();
+    return s.length > maxLen ? s.slice(0, maxLen) + "…" : s;
+  }
+
+  function buildRagReply(query, hits){
+    if(!hits.length){
+      return "我翻了站務資料庫，但這句關鍵字太弱了…\n你可以改成：\n- RAG:龍騰斷橋 為什麼會斷？\n- RAG:1935 地震 震央在哪？\n- RAG:舊山線 有什麼特色？";
+    }
+    const lines = hits.map(h => {
+      const d = h.doc;
+      return `• ${d.title}\n  ${ragSnippet(d.text)}\n  （來源：${d.source}）`;
+    });
+    return `🔎 我從 RAG 資料庫撈到以下線索：\n\n${lines.join("\n\n")}\n\n要我把這些資料整理成「任務線索」版，回我：線索整理`;
+  }
+
+  function listRagTopics(){
+    const titles = RAG_DB.map(d => `• ${d.title}`).join("\n");
+    return `📚 目前 RAG 資料庫條目：\n\n${titles}\n\n使用方式：\n- 直接提問（含？）就會觸發\n- 或輸入：RAG:你的問題`;
+  }
+
+  function isQuestionLike(text){
+    if(/[?？]/.test(text)) return true;
+    const q = ["什麼","為何","為什麼","幾年","在哪","怎麼","如何","哪裡","海拔","特色","原因"];
+    return q.some(k => text.includes(k));
+  }
+
+  function runRAG(query, done){
+    const t = addSystemMessage(`🔍 RAG 檢索中：${query}`, true);
+    setTimeout(() => {
+      const hits = ragSearch(query, 3);
+      t.remove();
+
+      if(!hits.length){
+        addSystemMessage("⚠️ RAG：查無命中（試試看換關鍵字）");
+      }else{
+        addSystemMessage(`✅ RAG 命中：${hits.map(x => x.doc.title).join("、")}`);
+      }
+
+      npcSay(buildRagReply(query, hits), true);
+      done();
+    }, 650);
+  }
+
+  // ===============================
+  // ✅ 主動提示（閒置 + 卡關）
+  // ===============================
+  function startProactiveHints() {
+    setInterval(() => {
+      if (isNpcTyping) return;
+      if (!canHintNow()) return;
+
+      const now = Date.now();
+      const idleMs = now - (npcMemory.context.lastUserAt || now);
+
+      // 只有在任務尚未結束時提示
+      if (gameState === 2 && !npcMemory.progress.confirmedGoal) {
+        if (idleMs > 18000) {
+          recordHint();
+          npcSay(`（提示）你只要回我一句「知道了」或提到「${TARGET_LANDMARK}/${TARGET_AREA}」，我就能確認你理解任務，並解鎖 📷 拍照。`);
+        }
+      }
+
+      if (gameState === 3 && !npcMemory.progress.photoSent) {
+        if (idleMs > 18000) {
+          recordHint();
+          npcSay(`（提示）現在要做的是「影像證據」：按左下角 **📷** 拍下 **${TARGET_LANDMARK}** 並傳給我。`);
+        }
+      }
+
+      if (gameState === 4 && !npcMemory.progress.finished) {
+        markProgress("finished", true);
+      }
+    }, 2000);
+  }
+
+  // ===============================
   // Phase 1
+  // ===============================
   function startSignalAcquisition(){
     gameState = 1;
     const steps = [
@@ -335,42 +449,66 @@
     }, 800);
   }
 
-  // Phase 2（改成苗栗任務）
+  // 依記憶恢復進度（刷新也不會亂）
+  function resumeStateFromMemory(){
+    if (npcMemory.progress.finished) return 4;
+    if (npcMemory.progress.photoSent) return 3;      // 已傳過照片：仍回到拍照階段（可再傳一次）
+    if (npcMemory.progress.confirmedGoal) return 3;  // 已確認目標：回到拍照階段
+    return 2;
+  }
+
+  // Phase 2（苗栗任務）
   function startPhase2(){
     glitchScreen.style.display = 'none';
     chatInterface.style.opacity = '1';
     sendBtn.disabled = false;
+
+    // 避免一進來就被「閒置提示」洗版
+    npcMemory.context.lastUserAt = Date.now();
+    saveMemory();
+
+    const resume = resumeStateFromMemory();
+
+    if (resume === 4) {
+      gameState = 4;
+      addSystemMessage("🧠 記憶恢復：上次進度已完成");
+      npcSay(`我記得你已經幫我找到 **${TARGET_LANDMARK}** 的線索了。\n你現在可以繼續問我問題（含？會查 RAG），或輸入「清除記憶」重來。`, true);
+      return;
+    }
+
+    if (resume === 3) {
+      gameState = 3;
+      addSystemMessage("🧠 記憶恢復：已確認任務，等待拍照");
+      npcSay(`滋…你回來了。\n請直接按左下角 **📷**，拍一張 **${TARGET_LANDMARK}** 的照片傳給我。`, true);
+      return;
+    }
+
+    // resume === 2：正常開場
     gameState = 2;
 
-    setTimeout(() => addMessage('other',
-      `滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！`, false, true
-    ), 500);
+    setTimeout(() => npcSay(`滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！`, true), 500);
 
     setTimeout(() => {
-      addMessage('other',
-        `這張是最後一班車票...持票人失蹤了。上面寫著「${TARGET_CITY}・${TARGET_AREA}」！`,
-        false, true
-      );
+      npcSay(`這張是最後一班車票...持票人失蹤了。上面寫著「${TARGET_CITY}・${TARGET_AREA}」！`, true);
     }, 2000);
 
     setTimeout(() => {
-      addMessage(
-        'other',
-        "https://images.unsplash.com/photo-1516533075015-a3838415dbc3?auto=format&fit=crop&q=80&w=300",
-        true,
-        true
-      );
+      addMessage('other', "https://images.unsplash.com/photo-1516533075015-a3838415dbc3?auto=format&fit=crop&q=80&w=300", true, true);
     }, 4000);
 
     setTimeout(() => {
-      addMessage('other',
+      npcSay(
         `${TARGET_CITY}（${TARGET_AREA}）現在...還認得出來嗎？\n` +
-        `拜託你用你們時代的相機，拍一張 **${TARGET_LANDMARK}** 的地標照片傳給我！`
+        `拜託你用你們時代的相機，拍一張 **${TARGET_LANDMARK}** 的地標照片傳給我！\n\n` +
+        `（你也可以直接問我：例如「${TARGET_LANDMARK} 為什麼會斷？」我會去翻 RAG 資料庫）`,
+        true
       );
     }, 6000);
   }
 
+  // ===============================
   // Text send
+  // ===============================
   messageInput.addEventListener('keydown', (e) => {
     if(e.key === 'Enter'){
       e.preventDefault();
@@ -386,13 +524,68 @@
     addMessage('me', text);
     messageInput.value = '';
 
+    // ✅ 記住玩家內容
+    rememberUser(text);
+
+    // ✅ 指令：清除記憶
+    if (text === "清除記憶" || text.toLowerCase() === "reset") {
+      clearMemory();
+      npcSay("（已重置記憶）我暫時忘掉剛才的進度與對話脈絡了。重新整理或繼續輸入都可以重新開始。", true);
+      isNpcTyping = false;
+      return;
+    }
+
     isNpcTyping = true;
-    setTimeout(() => processTextLogic(text), 800);
+    setTimeout(() => processTextLogic(text), 450);
   }
 
   function processTextLogic(text){
     const endTurn = () => { isNpcTyping = false; };
 
+    // ✅ 快捷：列出資料庫
+    if(text === "資料庫" || text.toLowerCase() === "rag目錄"){
+      npcSay(listRagTopics(), true);
+      endTurn();
+      return;
+    }
+
+    // ✅ 指令式：RAG:xxx
+    const m = text.match(/^\s*rag\s*[:：]\s*(.+)$/i);
+    if(m && m[1]){
+      runRAG(m[1], endTurn);
+      return;
+    }
+
+    // ✅ 線索整理（把最近一次問題/任務做引導）
+    if(text === "線索整理"){
+      const n = npcMemory.context.playerName ? ` ${npcMemory.context.playerName}` : "";
+      npcSay(
+        `好的${n}，我把線索整理成任務導引：\n` +
+        `1) 目標地標：**${TARGET_LANDMARK}**（${TARGET_CITY}・${TARGET_AREA}）\n` +
+        `2) 相關事件：1935 地震 → 橋梁/鐵道受損（可問我：RAG:1935 地震）\n` +
+        `3) 下一步：按 **📷** 拍地標傳我 → 我更新線索\n\n` +
+        `要我提供「拍照角度建議」回我：拍照建議`,
+        true
+      );
+      endTurn();
+      return;
+    }
+
+    if(text === "拍照建議"){
+      npcSay(
+        `拍 **${TARGET_LANDMARK}** 的小建議：\n` +
+        `• 站在能同時拍到「磚拱橋墩」與「缺口」的位置\n` +
+        `• 盡量避免逆光（背對太陽或等雲遮）\n` +
+        `• 近景放入欄杆/步道一角，辨識更容易`,
+        true
+      );
+      endTurn();
+      return;
+    }
+
+    // ---------------------------
+    // 依狀態處理 + 記憶引導
+    // ---------------------------
     if(gameState === 2){
       const ok =
         text.includes(TARGET_CITY) ||
@@ -404,37 +597,63 @@
         text.includes("拍照") ||
         text.includes("知道了");
 
+      // 像提問：先 RAG（不阻斷任務）
+      if(isQuestionLike(text)){
+        if(ok){
+          addSystemMessage("✅ Agent 判斷：理解任務目標");
+          npcSay(`太好了！請點擊左下角的 **📷 相機按鈕**，拍一張 **${TARGET_LANDMARK}** 的照片傳給我！`, true);
+          gameState = 3;
+          markProgress("confirmedGoal", true);
+          npcMemory.stats.offTopicCount = 0; saveMemory();
+
+          runRAG(text, endTurn);
+          return;
+        }
+        runRAG(text, endTurn);
+        return;
+      }
+
       if(ok){
         addSystemMessage("✅ Agent 判斷：理解任務目標");
-        addMessage('other',
-          `太好了！請點擊左下角的 **📷 相機按鈕**，拍一張 **${TARGET_LANDMARK}** 的照片傳給我！`,
-          false, true
-        );
+        npcSay(`太好了！請點擊左下角的 **📷 相機按鈕**，拍一張 **${TARGET_LANDMARK}** 的照片傳給我！`, true);
         gameState = 3;
+        markProgress("confirmedGoal", true);
+        npcMemory.stats.offTopicCount = 0; saveMemory();
         endTurn();
         return;
       }
 
-      if(text.includes("地震") || text.includes("1935")){
-        const thinkingMsg = addSystemMessage("🔍 RAG 資料庫檢索中：1935 地震紀錄...", true);
-        setTimeout(() => {
-          thinkingMsg.remove();
-          addMessage('other',
-            `那場震動...我永生難忘。${TARGET_LANDMARK} 也是那時候被震毀的。\n` +
-            `但車票的線索在 ${TARGET_CITY}（${TARGET_AREA}）！快把地標拍給我！`
-          );
-          endTurn();
-        }, 1800);
-        return;
+      // 卡關偵測（偏題 2 次就主動引導）
+      npcMemory.stats.offTopicCount = (npcMemory.stats.offTopicCount || 0) + 1;
+      saveMemory();
+      npcSay(`我聽不太清楚...訊號干擾很嚴重。專注在 ${TARGET_CITY}（${TARGET_AREA}）和 ${TARGET_LANDMARK}！`, true);
+
+      if (npcMemory.stats.offTopicCount >= 2 && canHintNow()) {
+        recordHint();
+        npcMemory.stats.offTopicCount = 0; saveMemory();
+        npcSay(`（引導）你只要回我「知道了」或打出「${TARGET_LANDMARK}」，我就能解鎖 📷 任務。`, true);
       }
 
-      addMessage('other', `我聽不太清楚...訊號干擾很嚴重。專注在 ${TARGET_CITY}（${TARGET_AREA}）和 ${TARGET_LANDMARK}！`);
       endTurn();
       return;
     }
 
     if(gameState === 3){
-      addMessage('other', `我現在需要的是「影像證據」！請拍下 **${TARGET_LANDMARK}**！`);
+      if(isQuestionLike(text)){
+        runRAG(text, endTurn);
+        return;
+      }
+      npcSay(`我現在需要的是「影像證據」！請按 **📷** 拍下 **${TARGET_LANDMARK}**！`, true);
+      endTurn();
+      return;
+    }
+
+    if(gameState === 4){
+      if(isQuestionLike(text)){
+        runRAG(text, endTurn);
+        return;
+      }
+      npcSay("任務已完成。你可以繼續問我舊山線/勝興/龍騰斷橋的問題（含？就會查 RAG），或輸入「清除記憶」重來。", true);
       endTurn();
       return;
     }
@@ -442,7 +661,9 @@
     endTurn();
   }
 
-  // Real camera upload (with resize)
+  // ===============================
+  // Camera upload (with resize)
+  // ===============================
   function flash(){
     shutterOverlay.classList.remove('flash-active');
     void shutterOverlay.offsetWidth;
@@ -482,8 +703,8 @@
     if(isNpcTyping) return;
 
     if(gameState !== 3){
-      if(gameState < 3) addMessage('other', "現在還不是拍照的時候。請先用文字和我確認任務目標！");
-      if(gameState === 4) addMessage('other', "任務已完成。新的指令在訊息紀錄裡。");
+      if(gameState < 3) npcSay("現在還不是拍照的時候。請先用文字和我確認任務目標！", true);
+      if(gameState === 4) npcSay("任務已完成。你可以繼續問我問題（含？會查 RAG），或輸入「清除記憶」重來。", true);
       return;
     }
     cameraInput.value = "";
@@ -501,8 +722,8 @@
     try{
       const dataUrl = await resizeImageFileToDataURL(file, 900, 0.85);
 
-      // 顯示使用者照片泡泡
       addMessage('me', dataUrl, true);
+      markProgress("photoSent", true);
 
       const multimodalMsg = addSystemMessage("👁️ Multimodal AI 正在解析影像特徵...", true);
 
@@ -511,23 +732,29 @@
         addSystemMessage(`✅ 影像辨識：${TARGET_LANDMARK} (信心度 95%)`);
 
         setTimeout(() => {
-          addMessage('other', `太像了...！這真的是 **${TARGET_LANDMARK}**！我以前每天都會經過這裡...`);
-          addMessage('other', `原來你們的時代，它還能以另一種方式被記得。`);
-          addMessage('other', `🎉 **恭喜！** 獲得 **舊山線時空偵探** 稱號。新的線索已更新！`);
+          npcSay(`太像了...！這真的是 **${TARGET_LANDMARK}**！我以前每天都會經過這裡...`, true);
+          npcSay(`原來你們的時代，它還能以另一種方式被記得。`, true);
+          npcSay(`🎉 **恭喜！** 獲得 **舊山線時空偵探** 稱號。新的線索已更新！\n\n（想查資料：直接問我，或輸入 RAG:你的問題）`, true);
+
           gameState = 4;
+          markProgress("finished", true);
           isNpcTyping = false;
         }, 900);
 
-      }, 1600);
+      }, 1200);
 
     }catch(e){
-      addMessage('other', "照片讀取失敗了...訊號很不穩。你可以再試一次嗎？");
+      npcSay("照片讀取失敗了...訊號很不穩。你可以再試一次嗎？", true);
       isNpcTyping = false;
     }
   });
 
+  // ===============================
   // Start
+  // ===============================
+  startProactiveHints();
   startSignalAcquisition();
 </script>
 </body>
 </html>
+
