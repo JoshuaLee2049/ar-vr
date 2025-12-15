@@ -3,290 +3,287 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City RPG: 舊山線時空熱線</title>
+<title>City RPG: 舊山線時空探險 - 最終整合版</title>
 <style>
-  /* --- 核心佈局 --- */
-  body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #111; margin: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
-  
+  /* --- 基礎設定 --- */
+  body { background-color: #000; margin: 0; font-family: 'PingFang TC', 'Microsoft JhengHei', monospace; overflow: hidden; height: 100vh; display: flex; justify-content: center; }
+
   .phone-frame { 
-    width: 100%; max-width: 450px; height: 100%; 
-    background-color: #7280a8; 
-    position: relative; display: flex; flex-direction: column; 
-    background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&q=80&w=800');
-    background-size: cover; background-position: center;
+    width: 100%; max-width: 450px; height: 100%; position: relative; overflow: hidden;
+    background: #111;
+  }
+  
+  /* --- Phase 1: 雜訊開場 (Glitch Screen) --- */
+  .signal-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 1px, transparent 2px);
+    pointer-events: none; z-index: 100; animation: scanline 8s linear infinite;
+  }
+  .glitch-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: black; color: #0f0; z-index: 50; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 20px; transition: opacity 1s;
+  }
+  .glitch-text {
+    font-size: 1.2em; text-shadow: 2px 0 red, -2px 0 blue; animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
   }
 
-  /* --- Header --- */
-  .header { 
-    background: rgba(20, 20, 30, 0.85); color: #fff; padding: 15px 20px; 
-    display: flex; align-items: center; gap: 15px; font-weight: bold; backdrop-filter: blur(10px); z-index: 10;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+  /* --- Phase 2 & 3: 聊天介面 (Line Style) --- */
+  .chat-interface {
+    width: 100%; height: 100%; display: flex; flex-direction: column;
+    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1517414628890-5348538e8bf0?auto=format&fit=crop&q=80&w=800'); 
+    background-size: cover; background-position: center; opacity: 0; transition: opacity 1s;
   }
-  .back-btn { font-size: 1.2em; cursor: pointer; }
-  .chat-title { flex: 1; font-size: 1.1em; }
-  .header-icons { font-size: 1.2em; letter-spacing: 15px; opacity: 0.8; }
-
-  /* --- 聊天區域 --- */
-  .chat-area { 
-    flex: 1; padding: 20px 12px; overflow-y: auto; 
-    display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth;
-  }
+  .header { background: rgba(0,0,0,0.8); color: #fff; padding: 15px; display: flex; align-items: center; border-bottom: 1px solid #333; }
+  .chat-title { flex: 1; font-weight: bold; }
+  .chat-area { flex: 1; padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth; }
   
   /* 訊息樣式 */
-  .msg-row { display: flex; align-items: flex-start; margin-bottom: 5px; }
+  .msg-row { display: flex; align-items: flex-start; margin-bottom: 5px; opacity: 0; transform: translateY(10px); transition: all 0.5s; }
+  .msg-row.show { opacity: 1; transform: translateY(0); }
   .msg-row.me { justify-content: flex-end; }
-  
-  .avatar { 
-    width: 42px; height: 42px; border-radius: 50%; margin-right: 10px; 
-    background-size: cover; border: 1px solid rgba(255,255,255,0.4); flex-shrink: 0;
-  }
-  
-  .sender-name { font-size: 0.75em; color: #ddd; margin-bottom: 4px; margin-left: 2px; text-shadow: 1px 1px 2px black;}
-  
-  .bubble {
-    padding: 10px 14px; border-radius: 18px; font-size: 0.95em; line-height: 1.5; 
-    position: relative; max-width: 240px; word-wrap: break-word; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  }
-  
-  /* 對方氣泡 */
-  .msg-row.other .bubble { background: #fff; color: #333; border-top-left-radius: 2px; }
-  .msg-row.other .bubble::before {
-    content: ""; position: absolute; left: -8px; top: 0;
-    border-top: 0px solid transparent; border-right: 12px solid #fff; border-bottom: 10px solid transparent;
-  }
-  
-  /* 我的氣泡 */
-  .msg-row.me .bubble { background: #98e165; color: #000; border-top-right-radius: 2px; }
-  .msg-row.me .bubble::before {
-    content: ""; position: absolute; right: -8px; top: 0;
-    border-top: 0px solid transparent; border-left: 12px solid #98e165; border-bottom: 10px solid transparent;
-  }
 
-  /* 系統/時間資訊 */
-  .meta-info {
-    font-size: 0.7em; color: rgba(255,255,255,0.7);
-    display: flex; flex-direction: column; justify-content: flex-end;
-    margin: 0 8px 5px 8px; text-align: right; min-width: 35px;
-  }
-  .msg-row.me .meta-info { text-align: left; align-items: flex-end; }
-  .read-status { color: #b3e283; margin-bottom: 2px; font-weight: bold; font-size: 0.9em;}
+  .avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; margin-right: 10px; background-size: cover; filter: sepia(0.3); flex-shrink: 0;}
+  .sender-name { color: #ccc; font-size: 0.8em; margin-bottom: 4px; margin-left: 2px; text-shadow: 1px 1px 2px black;}
+  .bubble { padding: 10px 14px; border-radius: 18px; font-size: 0.95em; line-height: 1.5; max-width: 240px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  
+  .msg-row.other .bubble { background: rgba(255,255,255,0.95); color: #333; border-top-left-radius: 2px; }
+  .msg-row.other .bubble::before { content: ""; position: absolute; left: -8px; top: 0; border-top: 0 solid transparent; border-right: 12px solid rgba(255,255,255,0.95); border-bottom: 10px solid transparent; }
+  
+  .msg-row.me .bubble { background: #98e165; color: #000; border-top-right-radius: 2px; }
+  .msg-row.me .bubble::before { content: ""; position: absolute; right: -8px; top: 0; border-top: 0 solid transparent; border-left: 12px solid #98e165; border-bottom: 10px solid transparent; }
+
+  /* 道具：車票 */
+  .ticket-img { width: 100%; border-radius: 4px; border: 2px solid #777; filter: sepia(0.8) contrast(1.2); }
   
   /* 系統提示卡片 (RAG/任務) */
-  .system-card {
-    align-self: center; background: rgba(0,0,0,0.6); color: #fff;
-    padding: 5px 15px; border-radius: 20px; font-size: 0.75em;
-    margin: 10px 0; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);
-  }
+  .system-card { align-self: center; background: rgba(13, 100, 100, 0.7); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.75em; margin: 10px 0; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(4px); }
+  .thinking-dots::after { content: ' .'; animation: dots 1.5s steps(5, end) infinite; }
   
-  /* RAG 思考中的動畫 */
-  .thinking-dots::after {
-    content: ' .'; animation: dots 1.5s steps(5, end) infinite;
-  }
-  @keyframes dots { 0%, 20% { content: ' .'; } 40% { content: ' ..'; } 60% { content: ' ...'; } 100% { content: ''; }}
+  /* 輸入區 */
+  .input-bar { background: #222; padding: 10px; border-top: 1px solid #444; display: flex; align-items: center; gap: 10px; }
+  .icon-btn { font-size: 1.4em; padding: 5px; cursor: pointer; color: #ccc; }
+  .text-input { flex: 1; background: #333; border: none; padding: 10px 15px; border-radius: 20px; outline: none; font-size: 16px; color: white; }
+  .send-btn { color: #5dade2; font-weight: bold; cursor: pointer; border: none; background: none; padding: 5px; }
 
-  /* --- 輸入區域 --- */
-  .input-bar {
-    background: #fff; padding: 10px; display: flex; align-items: center; gap: 10px;
-    border-top: 1px solid #ccc; padding-bottom: max(10px, env(safe-area-inset-bottom));
-  }
-  .icon-btn { font-size: 1.4em; padding: 5px; cursor: pointer; color: #555; }
-  .text-input { flex: 1; background: #f2f2f5; border: none; padding: 10px 15px; border-radius: 20px; outline: none; font-size: 16px; }
-  .send-btn { color: #2d68c4; font-weight: bold; cursor: pointer; border: none; background: none; padding: 5px; }
-
-  /* --- 相機閃光特效 --- */
+  /* 相機閃光特效 */
   .shutter-flash {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: white; opacity: 0; pointer-events: none; z-index: 999;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 999;
   }
   .flash-active { animation: flashAnim 0.3s ease-out forwards; }
+  
+  /* 動畫 Keyframes */
+  @keyframes scanline { 0% { background-position: 0% 0%; } 100% { background-position: 0% 100%; } }
+  @keyframes glitch { 0% { transform: translate(0); } 40% { transform: translate(2px, -2px); } 80% { transform: translate(-2px, 2px); } 100% { transform: translate(0); } }
   @keyframes flashAnim { 0% { opacity: 0; } 30% { opacity: 0.9; } 100% { opacity: 0; } }
-
+  @keyframes dots { 0%, 20% { content: ' .'; } 40% { content: ' ..'; } 60% { content: ' ...'; } 100% { content: ''; }}
 </style>
 </head>
 <body>
 
 <div class="phone-frame">
   <div class="shutter-flash" id="shutterOverlay"></div>
+  <div class="signal-overlay"></div>
 
-  <div class="header">
-    <div class="back-btn">❮</div>
-    <div class="chat-title">勝興車站 站長 (鬼魂?)</div>
-    <div class="header-icons">📞 ☰</div>
+  <div class="glitch-screen" id="glitchScreen">
+    <div style="font-size: 3em; margin-bottom: 20px;">⚠️</div>
+    <div class="glitch-text" id="glitchText">連線建立中...<br>接收到未頻段訊號...</div>
   </div>
 
-  <div class="chat-area" id="chatArea">
-    <div class="system-card">今天</div>
-    
-    <div class="msg-row other">
-      <div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster&clothing=graphicShirt');"></div>
-      <div class="msg-content">
-        <div class="sender-name">站長</div>
-        <div class="bubble">末班車早就開走了...年輕人，你怎麼還在月台上？</div>
-      </div>
-      <div class="meta-info"><span>下午 11:58</span></div>
+  <div class="chat-interface" id="chatInterface">
+    <div class="header">
+      <div style="flex:1;">📶 不明訊號源</div>
+      <div style="font-size: 0.8em; color: #e74c3c;">連線不穩定</div>
     </div>
-  </div>
 
-  <div class="input-bar">
-    <div class="icon-btn" id="cameraBtn">📷</div>
-    <div class="icon-btn">＋</div>
-    <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
-    <button class="send-btn" id="sendBtn">傳送</button>
+    <div class="chat-area" id="chatArea">
+    </div>
+
+    <div class="input-bar">
+      <div class="icon-btn" id="cameraBtn">📷</div>
+      <div class="icon-btn">＋</div>
+      <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
+      <button class="send-btn" id="sendBtn" disabled>傳送</button>
+    </div>
   </div>
 </div>
 
 <script>
-  // --- 變數與設定 ---
+  // --- DOM 元素與狀態 ---
   const chatArea = document.getElementById('chatArea');
   const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const cameraBtn = document.getElementById('cameraBtn');
   const shutterOverlay = document.getElementById('shutterOverlay');
-  
-  // 狀態機: 0=閒聊, 1=任務開始(問問題), 2=等待拍照
-  let gameState = 0; 
+  const glitchScreen = document.getElementById('glitchScreen');
+  const chatInterface = document.getElementById('chatInterface');
+  const glitchText = document.getElementById('glitchText');
 
-  // --- 核心功能 ---
+  // 0=未開始, 1=開場中, 2=等待車票主人資訊, 3=等待拍照(多模態驗證)
+  let gameState = 0; 
+  let isNpcTyping = false; 
+
+  // --- 輔助函式 ---
 
   function getCurrentTime() {
     const now = new Date();
     return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
   }
+  function generateRandomChars(length) {
+    let chars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+    let result = "";
+    for (let i = 0; i < length; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); }
+    return result;
+  }
+  function scrollToBottom() { chatArea.scrollTop = chatArea.scrollHeight; }
 
   // 發送訊息 (Type: 'me' 或 'other')
-  function addMessage(text, type, isImage = false) {
+  function addMessage(type, text, isImage = false, forceNpcName = false) {
     const row = document.createElement('div');
-    row.className = `msg-row ${type}`;
+    row.className = `msg-row`;
     const time = getCurrentTime();
 
     let contentHtml = `<div class="bubble">${text}</div>`;
     if (isImage) {
-      contentHtml = `<div class="bubble" style="padding:0; overflow:hidden;"><img src="${text}" style="width:100%; display:block; border-radius:18px;"></div>`;
+      contentHtml = `<div class="bubble" style="padding: 5px;"><img src="${text}" class="ticket-img"></div>`;
     }
 
     if (type === 'me') {
-      row.innerHTML = `
-        <div class="meta-info"><span class="read-status">已讀</span><span>${time}</span></div>
-        <div class="msg-content">${contentHtml}</div>`;
+      row.classList.add('me');
+      row.innerHTML = `<div class="meta-info"><span class="read-status">已讀</span><span>${time}</span></div><div class="msg-content">${contentHtml}</div>`;
     } else {
-      row.innerHTML = `
-        <div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster&clothing=graphicShirt');"></div>
-        <div class="msg-content">
-          <div class="sender-name">站長</div>
-          ${contentHtml}
-        </div>
-        <div class="meta-info"><span>${time}</span></div>`;
+      row.classList.add('other');
+      const senderName = forceNpcName ? "站長 (訊號微弱)" : "站長";
+      row.innerHTML = `<div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster&top=hat');"></div><div style="flex:1;"><div class="sender-name">${senderName}</div>${contentHtml}</div><div class="meta-info"><span>${time}</span></div>`;
     }
+
     chatArea.appendChild(row);
-    chatArea.scrollTop = chatArea.scrollHeight;
+    void row.offsetWidth; // 確保動畫觸發
+    row.classList.add('show');
+    scrollToBottom();
   }
 
-  // 顯示系統訊息
+  // 顯示系統提示
   function addSystemMessage(text, isThinking = false) {
     const div = document.createElement('div');
     div.className = 'system-card' + (isThinking ? ' thinking-dots' : '');
     div.textContent = text;
     chatArea.appendChild(div);
-    chatArea.scrollTop = chatArea.scrollHeight;
+    scrollToBottom();
     return div;
   }
 
-  // --- 互動邏輯 (The Brain) ---
-
-  // 1. 處理使用者輸入
-  function handleSend() {
-    const text = messageInput.value.trim();
-    if (!text) return;
-    
-    addMessage(text, 'me');
-    messageInput.value = '';
-    
-    // AI 處理延遲
-    setTimeout(() => {
-      processGameLogic(text);
-    }, 1000);
+  // --- Phase 1: 啟動開場動畫 ---
+  function startSignalAcquisition() {
+    gameState = 1; // 設置為開場中
+    let steps = [
+      "SYSTEM_OVERRIDE...", "正在搜尋 1935 年頻段...", "訊號同步率 48%...", "訊號同步率 92%...", "⚠️ 偵測到求救訊號"
+    ];
+    let stepIndex = 0;
+    let interval = setInterval(() => {
+      if (stepIndex < steps.length) {
+        glitchText.innerHTML = steps[stepIndex] + "<br>" + generateRandomChars(10);
+        stepIndex++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          glitchScreen.style.opacity = '0';
+          setTimeout(startPhase2, 1000); // 1秒後切換到聊天
+        }, 1000);
+      }
+    }, 800);
   }
 
-  // 2. 處理拍照
-  document.getElementById('cameraBtn').addEventListener('click', () => {
+  // --- Phase 2: 任務派發 (Agent) ---
+  function startPhase2() {
+    glitchScreen.style.display = 'none';
+    chatInterface.style.opacity = '1';
+    sendBtn.disabled = false; // 解鎖傳送按鈕
+    gameState = 2; // 進入等待資訊階段
+
+    // 劇本
+    setTimeout(() => addMessage("other", "滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！", false, true), 500);
+    setTimeout(() => addMessage("other", "這張是最後一班車票...持票人失蹤了。上面寫著「臺中」！", false, true), 2000);
+    setTimeout(() => {
+      addMessage("other", "https://images.unsplash.com/photo-1516533075015-a3838415dbc3?auto=format&fit=crop&q=80&w=300", 'other', true); // 模擬車票圖片
+      addMessage("other", "現在的臺中...是不是長得不一樣了？車票主人可能在那邊。請你...用你們時代的相機，拍一張車票目的地（臺中）的 **地標** 照片給我！");
+    }, 4000);
+  }
+
+  // --- Phase 3: 實境解謎 (Multimodal + RAG + Agent) ---
+
+  // 處理文字輸入 (RAG)
+  messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleSend(); });
+  sendBtn.addEventListener('click', handleSend);
+  
+  function handleSend() {
+    const text = messageInput.value.trim();
+    if (!text || isNpcTyping) return;
+    
+    addMessage('me', text);
+    messageInput.value = '';
+    
+    // 進入 AI 邏輯判斷
+    isNpcTyping = true;
+    setTimeout(() => { processTextLogic(text); }, 1500);
+  }
+
+  function processTextLogic(text) {
+    if (gameState === 2) {
+      if (text.includes("臺中") || text.includes("台中") || text.includes("地標") || text.includes("拍照")) {
+        addSystemMessage("✅ Agent 判斷：理解任務目標");
+        addMessage("很好！我知道你們現在的技術很厲害。請點擊左下角的 **📷 相機按鈕**，拍一張臺中的地標照片傳給我！", 'other');
+        gameState = 3; // 進入等待拍照狀態
+      } else if (text.includes("地震") || text.includes("1935")) {
+        // RAG 模擬
+        const thinkingMsg = addSystemMessage("🔍 RAG 資料庫檢索中：1935 地震紀錄...", true);
+        setTimeout(() => {
+          thinkingMsg.remove();
+          addMessage("other", "那場震動...我永生難忘。根據紀錄，龍騰斷橋也是那時候震毀的。但車票的線索在臺中！別分心！");
+        }, 3000);
+      } else {
+        addMessage("我聽不太清楚...訊號干擾很嚴重。專注在車票和目的地！", 'other');
+      }
+    }
+    isNpcTyping = false;
+  }
+
+  // 處理拍照 (Multimodal)
+  cameraBtn.addEventListener('click', () => {
+    if (gameState !== 3 || isNpcTyping) return;
+    
     // 閃光動畫
     shutterOverlay.classList.remove('flash-active');
     void shutterOverlay.offsetWidth;
     shutterOverlay.classList.add('flash-active');
-
-    // 模擬照片上傳
+    
+    isNpcTyping = true;
+    
     setTimeout(() => {
-      addMessage('https://images.unsplash.com/photo-1596825205489-9a1d7c30055d?auto=format&fit=crop&q=80&w=300', 'me', true);
+      // 模擬上傳臺中地標 (例如：臺中火車站)
+      addMessage('me', '📷 已傳送照片');
       
-      // 觸發多模態分析
+      const multimodalMsg = addSystemMessage("👁️ Multimodal AI 正在解析影像特徵...", true);
+
       setTimeout(() => {
-         // 如果是在等待拍照的狀態
-         if (gameState === 2) {
-           simulateAIProcessing("Multimodal Analysis", "正在解析影像特徵...");
-         } else {
-           addMessage("這照片...雖然拍得不錯，但我現在不是要看這個。", 'other');
-         }
-      }, 1000);
+        multimodalMsg.remove();
+        addSystemMessage("✅ 影像辨識：臺中火車站舊站 (信心度 95%)");
+        
+        // Agent 根據結果生成劇本
+        setTimeout(() => {
+          addMessage("other", "啊！這是...臺中車站！它長得和以前不太一樣了！不過這個建築風格我認得出來！");
+          addMessage("other", "根據我的紀錄，臺中車站的設計師是辰野金吾的學生。你找到了車票主人的線索了！");
+          addMessage("other", "🎉 **恭喜！** 獲得 **時空偵探** 稱號。新的線索已更新！");
+          gameState = 4; // 任務完成
+        }, 1500);
+      }, 3000); // 模擬解析時間
     }, 400);
   });
 
-  // 3. AI 邏輯核心 (RAG + Agent)
-  function processGameLogic(userText) {
-    // 狀態 0: 觸發任務
-    if (gameState === 0) {
-      if (userText.includes("鬼") || userText.includes("誰") || userText.includes("你好")) {
-        addMessage("噓...別那麼大聲。既然你看得到我，代表你跟這裡有緣。", 'other');
-        setTimeout(() => {
-            addMessage("考考你，你知道勝興車站以前是被稱為「十六份」嗎？", 'other');
-            gameState = 1;
-        }, 1500);
-      } else {
-        addMessage("我聽不太清楚...月台風太大了。", 'other');
-      }
-    } 
-    // 狀態 1: 問答 (RAG 介入)
-    else if (gameState === 1) {
-      const thinkingMsg = addSystemMessage("🔍 RAG 資料庫檢索中", true);
-      
-      setTimeout(() => {
-        thinkingMsg.remove(); // 移除思考動畫
-        
-        if (userText.includes("十六份") || userText.includes("知道") || userText.includes("樟腦")) {
-          // RAG 檢索成功
-          addSystemMessage("✅ 驗證史實：十六份/樟腦寮");
-          addMessage("沒錯！以前這裡有很多樟腦寮。看來你不是普通的觀光客。", 'other');
-          setTimeout(() => {
-            addMessage("那你能幫我一個忙嗎？我找不到以前的「號誌燈」了。去幫我拍一張照片回來。", 'other');
-            gameState = 2; // 進入拍照任務
-          }, 1500);
-        } else {
-          addMessage("看來你對這裡的歷史還不夠了解...去查查「十六份」再回來找我。", 'other');
-        }
-      }, 2000);
-    }
-  }
-
-  // 4. 模擬 AI 分析 (影像辨識)
-  function simulateAIProcessing(type, desc) {
-    const sysMsg = addSystemMessage(`👁️ ${desc}`, true);
-    
-    setTimeout(() => {
-      sysMsg.remove();
-      if (gameState === 2) {
-        addSystemMessage("✅ 影像辨識：舊山線號誌燈 (信心度 98%)");
-        addMessage("對！就是這個！老朋友...好久不見了。", 'other');
-        addMessage("這可是當年確保火車不會相撞的重要設備啊。", 'other');
-        addMessage("🎉 任務完成！獲得「時空旅人」徽章。", 'other');
-      }
-    }, 2500);
-  }
-
-  // 綁定按鍵
-  document.getElementById('sendBtn').addEventListener('click', handleSend);
-  messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleSend(); });
+  // --- 啟動程序 ---
+  startSignalAcquisition();
 
 </script>
-
-</body>
-</html>
 
 </body>
 </html>
