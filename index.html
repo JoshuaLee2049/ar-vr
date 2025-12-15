@@ -1,181 +1,296 @@
-// --- DOM 元素與狀態 ---
-  const chatArea = document.getElementById('chatArea');
-  const messageInput = document.getElementById('messageInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const cameraBtn = document.getElementById('cameraBtn');
-  const shutterOverlay = document.getElementById('shutterOverlay');
-  const glitchScreen = document.getElementById('glitchScreen');
-  const chatInterface = document.getElementById('chatInterface');
-  const glitchText = document.getElementById('glitchText');
 
-  // 0=未開始, 1=開場中, 2=等待車票主人資訊(文字RAG), 3=等待拍照(多模態驗證), 4=完成
-  let gameState = 0; 
-  let isNpcTyping = false; 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>City RPG: 舊山線時空探險 - 最終整合版</title>
+<style>
+  /* --- 基礎設定 --- */
+  body { background-color: #000; margin: 0; font-family: 'PingFang TC', 'Microsoft JhengHei', monospace; overflow: hidden; height: 100vh; display: flex; justify-content: center; }
 
-  // --- 輔助函式 ---
+  .phone-frame { 
+    width: 100%; max-width: 450px; height: 100%; position: relative; overflow: hidden;
+    background: #111;
+  }
+  
+  /* --- Phase 1: 雜訊開場 (Glitch Screen) --- */
+  .signal-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 1px, transparent 2px);
+    pointer-events: none; z-index: 100; animation: scanline 8s linear infinite;
+  }
+  .glitch-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: black; color: #0f0; z-index: 50; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 20px; transition: opacity 1s;
+  }
+  .glitch-text {
+    font-size: 1.2em; text-shadow: 2px 0 red, -2px 0 blue; animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+  }
 
-  function getCurrentTime() {
-    const now = new Date();
-    return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-  }
-  function generateRandomChars(length) {
-    let chars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
-    let result = "";
-    for (let i = 0; i < length; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); }
-    return result;
-  }
-  function scrollToBottom() { chatArea.scrollTop = chatArea.scrollHeight; }
+  /* --- Phase 2 & 3: 聊天介面 (Line Style) --- */
+  .chat-interface {
+    width: 100%; height: 100%; display: flex; flex-direction: column;
+    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1517414628890-5348538e8bf0?auto=format&fit=crop&q=80&w=800'); 
+    background-size: cover; background-position: center; opacity: 0; transition: opacity 1s;
+  }
+  .header { background: rgba(0,0,0,0.8); color: #fff; padding: 15px; display: flex; align-items: center; border-bottom: 1px solid #333; }
+  .chat-title { flex: 1; font-weight: bold; }
+  .chat-area { flex: 1; padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth; }
+  
+  /* 訊息樣式 */
+  .msg-row { display: flex; align-items: flex-start; margin-bottom: 5px; opacity: 0; transform: translateY(10px); transition: all 0.5s; }
+  .msg-row.show { opacity: 1; transform: translateY(0); }
+  .msg-row.me { justify-content: flex-end; }
 
-  // 發送訊息 (Type: 'me' 或 'other')
-  function addMessage(type, text, isImage = false, forceNpcName = false) {
-    const row = document.createElement('div');
-    row.className = `msg-row`;
-    const time = getCurrentTime();
+  .avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; margin-right: 10px; background-size: cover; filter: sepia(0.3); flex-shrink: 0;}
+  .sender-name { color: #ccc; font-size: 0.8em; margin-bottom: 4px; margin-left: 2px; text-shadow: 1px 1px 2px black;}
+  .bubble { padding: 10px 14px; border-radius: 18px; font-size: 0.95em; line-height: 1.5; max-width: 240px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  
+  .msg-row.other .bubble { background: rgba(255,255,255,0.95); color: #333; border-top-left-radius: 2px; }
+  .msg-row.other .bubble::before { content: ""; position: absolute; left: -8px; top: 0; border-top: 0 solid transparent; border-right: 12px solid rgba(255,255,255,0.95); border-bottom: 10px solid transparent; }
+  
+  .msg-row.me .bubble { background: #98e165; color: #000; border-top-right-radius: 2px; }
+  .msg-row.me .bubble::before { content: ""; position: absolute; right: -8px; top: 0; border-top: 0 solid transparent; border-left: 12px solid #98e165; border-bottom: 10px solid transparent; }
 
-    let contentHtml = `<div class="bubble">${text}</div>`;
-    if (isImage) {
-      contentHtml = `<div class="bubble" style="padding: 5px;"><img src="${text}" class="ticket-img"></div>`;
-    }
+  /* 道具：車票 */
+  .ticket-img { width: 100%; border-radius: 4px; border: 2px solid #777; filter: sepia(0.8) contrast(1.2); }
+  
+  /* 系統提示卡片 (RAG/任務) */
+  .system-card { align-self: center; background: rgba(13, 100, 100, 0.7); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 0.75em; margin: 10px 0; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(4px); }
+  .thinking-dots::after { content: ' .'; animation: dots 1.5s steps(5, end) infinite; }
+  
+  /* 輸入區 */
+  .input-bar { background: #222; padding: 10px; border-top: 1px solid #444; display: flex; align-items: center; gap: 10px; }
+  .icon-btn { font-size: 1.4em; padding: 5px; cursor: pointer; color: #ccc; }
+  .text-input { flex: 1; background: #333; border: none; padding: 10px 15px; border-radius: 20px; outline: none; font-size: 16px; color: white; }
+  .send-btn { color: #5dade2; font-weight: bold; cursor: pointer; border: none; background: none; padding: 5px; }
 
-    if (type === 'me') {
-      row.classList.add('me');
-      row.innerHTML = `<div class="meta-info"><span class="read-status">已讀</span><span>${time}</span></div><div class="msg-content">${contentHtml}</div>`;
-    } else {
-      row.classList.add('other');
-      const senderName = forceNpcName ? "站長 (訊號微弱)" : "站長";
-      row.innerHTML = `<div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster&top=hat');"></div><div style="flex:1;"><div class="sender-name">${senderName}</div>${contentHtml}</div><div class="meta-info"><span>${time}</span></div>`;
-    }
+  /* 相機閃光特效 */
+  .shutter-flash {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 999;
+  }
+  .flash-active { animation: flashAnim 0.3s ease-out forwards; }
+  
+  /* 動畫 Keyframes */
+  @keyframes scanline { 0% { background-position: 0% 0%; } 100% { background-position: 0% 100%; } }
+  @keyframes glitch { 0% { transform: translate(0); } 40% { transform: translate(2px, -2px); } 80% { transform: translate(-2px, 2px); } 100% { transform: translate(0); } }
+  @keyframes flashAnim { 0% { opacity: 0; } 30% { opacity: 0.9; } 100% { opacity: 0; } }
+  @keyframes dots { 0%, 20% { content: ' .'; } 40% { content: ' ..'; } 60% { content: ' ...'; } 100% { content: ''; }}
+</style>
+</head>
+<body>
 
-    chatArea.appendChild(row);
-    void row.offsetWidth; // 確保動畫觸發
-    row.classList.add('show');
-    scrollToBottom();
-  }
+<div class="phone-frame">
+  <div class="shutter-flash" id="shutterOverlay"></div>
+  <div class="signal-overlay"></div>
 
-  // 顯示系統提示
-  function addSystemMessage(text, isThinking = false) {
-    const div = document.createElement('div');
-    div.className = 'system-card' + (isThinking ? ' thinking-dots' : '');
-    div.textContent = text;
-    chatArea.appendChild(div);
-    scrollToBottom();
-    return div;
-  }
+  <div class="glitch-screen" id="glitchScreen">
+    <div style="font-size: 3em; margin-bottom: 20px;">⚠️</div>
+    <div class="glitch-text" id="glitchText">連線建立中...<br>接收到未頻段訊號...</div>
+  </div>
 
-  // --- Phase 1: 啟動開場動畫 ---
-  function startSignalAcquisition() {
-    gameState = 1; // 設置為開場中
-    let steps = [
-      "SYSTEM_OVERRIDE...", "正在搜尋 1935 年頻段...", "訊號同步率 48%...", "訊號同步率 92%...", "⚠️ 偵測到求救訊號"
-    ];
-    let stepIndex = 0;
-    let interval = setInterval(() => {
-      if (stepIndex < steps.length) {
-        glitchText.innerHTML = steps[stepIndex] + "<br>" + generateRandomChars(10);
-        stepIndex++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          glitchScreen.style.opacity = '0';
-          setTimeout(startPhase2, 1000); // 1秒後切換到聊天
-        }, 1000);
-      }
-    }, 800);
-  }
+  <div class="chat-interface" id="chatInterface">
+    <div class="header">
+      <div style="flex:1;">📶 不明訊號源</div>
+      <div style="font-size: 0.8em; color: #e74c3c;">連線不穩定</div>
+    </div>
 
-  // --- Phase 2: 任務派發 (Agent) ---
-  function startPhase2() {
-    glitchScreen.style.display = 'none';
-    chatInterface.style.opacity = '1';
-    sendBtn.disabled = false; // 解鎖傳送按鈕
-    gameState = 2; // 進入等待資訊階段 (等待 RAG 觸發)
+    <div class="chat-area" id="chatArea">
+    </div>
 
-    // 劇本
-    setTimeout(() => addMessage("other", "滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！", false, true), 500);
-    setTimeout(() => addMessage("other", "這張是最後一班車票...持票人失蹤了。上面寫著「臺中」！", false, true), 2000);
-    setTimeout(() => {
-      addMessage("other", "https://images.unsplash.com/photo-1516533075015-a3838415dbc3?auto=format&fit=crop&q=80&w=300", 'other', true); // 模擬車票圖片
-      addMessage("other", "現在的臺中...是不是長得不一樣了？車票主人可能在那邊。請你...用你們時代的相機，拍一張車票目的地（臺中）的 **地標** 照片給我！");
-    }, 4000);
-  }
+    <div class="input-bar">
+      <div class="icon-btn" id="cameraBtn">📷</div>
+      <div class="icon-btn">＋</div>
+      <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
+      <button class="send-btn" id="sendBtn" disabled>傳送</button>
+    </div>
+  </div>
+</div>
 
-  // --- Phase 3: 實境解謎 (Multimodal + RAG + Agent) ---
+<script>
+  // --- DOM 元素與狀態 ---
+  const chatArea = document.getElementById('chatArea');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const shutterOverlay = document.getElementById('shutterOverlay');
+  const glitchScreen = document.getElementById('glitchScreen');
+  const chatInterface = document.getElementById('chatInterface');
+  const glitchText = document.getElementById('glitchText');
 
-  // 處理文字輸入 (RAG)
-  messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleSend(); });
-  sendBtn.addEventListener('click', handleSend);
-  
-  function handleSend() {
-    const text = messageInput.value.trim();
-    if (!text || isNpcTyping) return;
-    
-    addMessage('me', text);
-    messageInput.value = '';
-    
-    // 進入 AI 邏輯判斷
-    isNpcTyping = true;
-    setTimeout(() => { processTextLogic(text); }, 1500);
-  }
+  // 0=未開始, 1=開場中, 2=等待車票主人資訊(文字RAG), 3=等待拍照(多模態驗證), 4=完成
+  let gameState = 0; 
+  let isNpcTyping = false; 
 
-  function processTextLogic(text) {
-    if (gameState === 2) {
-      if (text.includes("臺中") || text.includes("台中") || text.includes("地標") || text.includes("拍照")) {
-        addSystemMessage("✅ Agent 判斷：理解任務目標");
-        addMessage("很好！我知道你們現在的技術很厲害。請點擊左下角的 **📷 相機按鈕**，拍一張臺中的地標照片傳給我！", 'other');
-        gameState = 3; // 💥 修正：只有在文字確認後才進入拍照狀態
-      } else if (text.includes("地震") || text.includes("1935")) {
-        // RAG 模擬
-        const thinkingMsg = addSystemMessage("🔍 RAG 資料庫檢索中：1935 地震紀錄...", true);
-        setTimeout(() => {
-          thinkingMsg.remove();
-          addMessage("other", "那場震動...我永生難忘。根據紀錄，龍騰斷橋也是那時候震毀的。但車票的線索在臺中！別分心！");
-        }, 3000);
-      } else {
-        addMessage("我聽不太清楚...訊號干擾很嚴重。專注在車票和目的地！", 'other');
-      }
-    } else if (gameState === 3) {
+  // --- 輔助函式 ---
+
+  function getCurrentTime() {
+    const now = new Date();
+    return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+  }
+  function generateRandomChars(length) {
+    let chars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+    let result = "";
+    for (let i = 0; i < length; i++) { result += chars.charAt(Math.floor(Math.random() * chars.length)); }
+    return result;
+  }
+  function scrollToBottom() { chatArea.scrollTop = chatArea.scrollHeight; }
+
+  // 發送訊息 (Type: 'me' 或 'other')
+  function addMessage(type, text, isImage = false, forceNpcName = false) {
+    const row = document.createElement('div');
+    row.className = `msg-row`;
+    const time = getCurrentTime();
+
+    let contentHtml = `<div class="bubble">${text}</div>`;
+    if (isImage) {
+      contentHtml = `<div class="bubble" style="padding: 5px;"><img src="${text}" class="ticket-img"></div>`;
+    }
+
+    if (type === 'me') {
+      row.classList.add('me');
+      row.innerHTML = `<div class="meta-info"><span class="read-status">已讀</span><span>${time}</span></div><div class="msg-content">${contentHtml}</div>`;
+    } else {
+      row.classList.add('other');
+      const senderName = forceNpcName ? "站長 (訊號微弱)" : "站長";
+      row.innerHTML = `<div class="avatar" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=StationMaster&top=hat');"></div><div style="flex:1;"><div class="sender-name">${senderName}</div>${contentHtml}</div><div class="meta-info"><span>${time}</span></div>`;
+    }
+
+    chatArea.appendChild(row);
+    void row.offsetWidth; // 確保動畫觸發
+    row.classList.add('show');
+    scrollToBottom();
+  }
+
+  // 顯示系統提示
+  function addSystemMessage(text, isThinking = false) {
+    const div = document.createElement('div');
+    div.className = 'system-card' + (isThinking ? ' thinking-dots' : '');
+    div.textContent = text;
+    chatArea.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  // --- Phase 1: 啟動開場動畫 ---
+  function startSignalAcquisition() {
+    gameState = 1; // 設置為開場中
+    let steps = [
+      "SYSTEM_OVERRIDE...", "正在搜尋 1935 年頻段...", "訊號同步率 48%...", "訊號同步率 92%...", "⚠️ 偵測到求救訊號"
+    ];
+    let stepIndex = 0;
+    let interval = setInterval(() => {
+      if (stepIndex < steps.length) {
+        glitchText.innerHTML = steps[stepIndex] + "<br>" + generateRandomChars(10);
+        stepIndex++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          glitchScreen.style.opacity = '0';
+          setTimeout(startPhase2, 1000); // 1秒後切換到聊天
+        }, 1000);
+      }
+    }, 800);
+  }
+
+  // --- Phase 2: 任務派發 (Agent) ---
+  function startPhase2() {
+    glitchScreen.style.display = 'none';
+    chatInterface.style.opacity = '1';
+    sendBtn.disabled = false; // 解鎖傳送按鈕
+    gameState = 2; // 進入等待資訊階段 (等待 RAG 觸發)
+
+    // 劇本
+    setTimeout(() => addMessage("other", "滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！", false, true), 500);
+    setTimeout(() => addMessage("other", "這張是最後一班車票...持票人失蹤了。上面寫著「臺中」！", false, true), 2000);
+    setTimeout(() => {
+      addMessage("other", "https://images.unsplash.com/photo-1516533075015-a3838415dbc3?auto=format&fit=crop&q=80&w=300", 'other', true); // 模擬車票圖片
+      addMessage("other", "現在的臺中...是不是長得不一樣了？車票主人可能在那邊。請你...用你們時代的相機，拍一張車票目的地（臺中）的 **地標** 照片給我！");
+    }, 4000);
+  }
+
+  // --- Phase 3: 實境解謎 (Multimodal + RAG + Agent) ---
+
+  // 處理文字輸入 (RAG)
+  messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleSend(); });
+  sendBtn.addEventListener('click', handleSend);
+  
+  function handleSend() {
+    const text = messageInput.value.trim();
+    if (!text || isNpcTyping) return;
+    
+    addMessage('me', text);
+    messageInput.value = '';
+    
+    // 進入 AI 邏輯判斷
+    isNpcTyping = true;
+    setTimeout(() => { processTextLogic(text); }, 1500);
+  }
+
+  function processTextLogic(text) {
+    if (gameState === 2) {
+      if (text.includes("臺中") || text.includes("台中") || text.includes("地標") || text.includes("拍照")) {
+        addSystemMessage("✅ Agent 判斷：理解任務目標");
+        addMessage("很好！我知道你們現在的技術很厲害。請點擊左下角的 **📷 相機按鈕**，拍一張臺中的地標照片傳給我！", 'other');
+        gameState = 3; // 進入等待拍照狀態
+      } else if (text.includes("地震") || text.includes("1935")) {
+        // RAG 模擬
+        const thinkingMsg = addSystemMessage("🔍 RAG 資料庫檢索中：1935 地震紀錄...", true);
+        setTimeout(() => {
+          thinkingMsg.remove();
+          addMessage("other", "那場震動...我永生難忘。根據紀錄，龍騰斷橋也是那時候震毀的。但車票的線索在臺中！別分心！");
+        }, 3000);
+      } else {
+        addMessage("我聽不太清楚...訊號干擾很嚴重。專注在車票和目的地！", 'other');
+      }
+    } else if (gameState === 3) {
         addMessage("我現在需要的是「影像證據」！請用相機拍下來！", 'other');
     }
-    isNpcTyping = false;
-  }
+    isNpcTyping = false;
+  }
 
-  // 處理拍照 (Multimodal)
-  cameraBtn.addEventListener('click', () => {
-    if (gameState !== 3 || isNpcTyping) {
+  // 處理拍照 (Multimodal)
+  cameraBtn.addEventListener('click', () => {
+    if (gameState !== 3 || isNpcTyping) {
             if (gameState < 3) addMessage("請先用文字確認你理解任務目標！", 'other');
             return;
         }
-    
-    // 閃光動畫
-    shutterOverlay.classList.remove('flash-active');
-    void shutterOverlay.offsetWidth;
-    shutterOverlay.classList.add('flash-active');
-    
-    isNpcTyping = true;
-    
-    setTimeout(() => {
-      // 模擬上傳臺中地標 (例如：臺中火車站)
-      addMessage('me', '📷 已傳送照片');
-      
-      const multimodalMsg = addSystemMessage("👁️ Multimodal AI 正在解析影像特徵...", true);
+    
+    // 閃光動畫
+    shutterOverlay.classList.remove('flash-active');
+    void shutterOverlay.offsetWidth;
+    shutterOverlay.classList.add('flash-active');
+    
+    isNpcTyping = true;
+    
+    setTimeout(() => {
+      // 模擬上傳臺中地標 (例如：臺中火車站)
+      addMessage('me', '📷 已傳送照片');
+      
+      const multimodalMsg = addSystemMessage("👁️ Multimodal AI 正在解析影像特徵...", true);
 
-      setTimeout(() => {
-        multimodalMsg.remove();
-        addSystemMessage("✅ 影像辨識：臺中火車站舊站 (信心度 95%)");
-        
-        // Agent 根據結果生成劇本
-        setTimeout(() => {
-          addMessage("other", "啊！這是...臺中車站！它長得和以前不太一樣了！不過這個建築風格我認得出來！");
-          addMessage("other", "根據我的紀錄，臺中車站的設計師是辰野金吾的學生。你找到了車票主人的線索了！");
-          addMessage("other", "🎉 **恭喜！** 獲得 **時空偵探** 稱號。新的線索已更新！");
-          gameState = 4; // 任務完成
-          isNpcTyping = false;
-        }, 1500);
-      }, 3000); // 模擬解析時間
-    }, 400);
-  });
+      setTimeout(() => {
+        multimodalMsg.remove();
+        addSystemMessage("✅ 影像辨識：臺中火車站舊站 (信心度 95%)");
+        
+        // Agent 根據結果生成劇本
+        setTimeout(() => {
+          addMessage("other", "啊！這是...臺中車站！它長得和以前不太一樣了！不過這個建築風格我認得出來！");
+          addMessage("other", "根據我的紀錄，臺中車站的設計師是辰野金吾的學生。你找到了車票主人的線索了！");
+          addMessage("other", "🎉 **恭喜！** 獲得 **時空偵探** 稱號。新的線索已更新！");
+          gameState = 4; // 任務完成
+          isNpcTyping = false;
+        }, 1500);
+      }, 3000); // 模擬解析時間
+    }, 400);
+  });
 
-  // --- 啟動程序 ---
-  startSignalAcquisition();
+  // --- 啟動程序 ---
+  startSignalAcquisition();
 
-            </script>
+</script>
+
+</body>
+</html>
