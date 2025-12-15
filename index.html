@@ -204,7 +204,9 @@
     // 劇本
     setTimeout(() => addMessage("other", "滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！", false, true), 500);
     setTimeout(() => addMessage("other", "這張是最後一班車票...持票人失蹤了。上面寫著「臺中」！", false, true), 2000);
-    setTimeout(() => {
+    setTimeout(() => {gameState = 3; 
+isNpcTyping = false;
+alert("✅ 遊戲狀態已設為 3 (等待拍照)。請點擊相機按钮測試。");
       addMessage("other", "https://images.unsplash.com/photo-1516533075015-a3838415dbc3?auto=format&fit=crop&q=80&w=300", 'other', true); // 模擬車票圖片
       addMessage("other", "現在的臺中...是不是長得不一樣了？車票主人可能在那邊。請你...用你們時代的相機，拍一張車票目的地（臺中）的 **地標** 照片給我！");
     }, 4000);
