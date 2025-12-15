@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>City RPG: 舊山線時空探險 - 最終整合版</title>
+<title>City RPG: 舊山線時空探險 - 苗栗整合版</title>
 
 <style>
   body {
@@ -59,7 +59,6 @@
     scroll-behavior:smooth;
   }
 
-  /* Message rows */
   .msg-row{
     display:flex; align-items:flex-end;
     margin-bottom:5px;
@@ -83,7 +82,7 @@
   }
 
   .bubble{
-    position:relative; /* 讓尖角定位正確 */
+    position:relative;
     padding:10px 14px; border-radius:18px;
     font-size:0.95em; line-height:1.5;
     max-width:240px;
@@ -128,7 +127,6 @@
     display:block;
   }
 
-  /* System card */
   .system-card{
     align-self:center;
     background:rgba(13,100,100,0.7);
@@ -149,7 +147,6 @@
     animation:dots 1.2s steps(4,end) infinite;
   }
 
-  /* Input bar */
   .input-bar{
     background:#222; padding:10px;
     border-top:1px solid #444;
@@ -171,7 +168,6 @@
   }
   .send-btn:disabled{ opacity:0.4; cursor:not-allowed; }
 
-  /* Flash */
   .shutter-flash{
     position:absolute; inset:0;
     background:#fff; opacity:0;
@@ -211,10 +207,8 @@
 
       <div class="input-bar">
         <div class="icon-btn" id="cameraBtn">📷</div>
-        <!-- ✅ 真實相機/相簿上傳（手機多半會跳相機） -->
         <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
         <div class="icon-btn">＋</div>
-
         <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
         <button class="send-btn" id="sendBtn" disabled>傳送</button>
       </div>
@@ -222,6 +216,11 @@
   </div>
 
 <script>
+  // ===== 可換主題的核心目標（這次改苗栗）=====
+  const TARGET_CITY = "苗栗";
+  const TARGET_AREA = "三義";
+  const TARGET_LANDMARK = "龍騰斷橋";
+
   // DOM
   const chatArea = document.getElementById('chatArea');
   const messageInput = document.getElementById('messageInput');
@@ -242,7 +241,7 @@
 
   function getCurrentTime(){
     const now = new Date();
-    return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`; // ✅ 修正致命錯誤
+    return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
   }
 
   function generateRandomChars(length){
@@ -336,17 +335,22 @@
     }, 800);
   }
 
-  // Phase 2
+  // Phase 2（改成苗栗任務）
   function startPhase2(){
     glitchScreen.style.display = 'none';
     chatInterface.style.opacity = '1';
     sendBtn.disabled = false;
     gameState = 2;
 
-    setTimeout(() => addMessage('other', "滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！", false, true), 500);
+    setTimeout(() => addMessage('other',
+      `滋...滋...聽得到嗎？拜託！我是勝興車站的站長，被困在 1935 年！`, false, true
+    ), 500);
 
     setTimeout(() => {
-      addMessage('other', "這張是最後一班車票...持票人失蹤了。上面寫著「臺中」！", false, true);
+      addMessage('other',
+        `這張是最後一班車票...持票人失蹤了。上面寫著「${TARGET_CITY}・${TARGET_AREA}」！`,
+        false, true
+      );
     }, 2000);
 
     setTimeout(() => {
@@ -360,8 +364,8 @@
 
     setTimeout(() => {
       addMessage('other',
-        "現在的臺中...是不是長得不一樣了？車票主人可能在那邊。\n" +
-        "請你...用你們時代的相機，拍一張車票目的地（臺中）的 **地標** 照片給我！"
+        `${TARGET_CITY}（${TARGET_AREA}）現在...還認得出來嗎？\n` +
+        `拜託你用你們時代的相機，拍一張 **${TARGET_LANDMARK}** 的地標照片傳給我！`
       );
     }, 6000);
   }
@@ -390,9 +394,22 @@
     const endTurn = () => { isNpcTyping = false; };
 
     if(gameState === 2){
-      if(text.includes("臺中") || text.includes("台中") || text.includes("地標") || text.includes("拍照") || text.includes("知道了")){
+      const ok =
+        text.includes(TARGET_CITY) ||
+        text.includes(TARGET_AREA) ||
+        text.includes("勝興") ||
+        text.includes("龍騰") ||
+        text.includes("斷橋") ||
+        text.includes("地標") ||
+        text.includes("拍照") ||
+        text.includes("知道了");
+
+      if(ok){
         addSystemMessage("✅ Agent 判斷：理解任務目標");
-        addMessage('other', "很好！請點擊左下角的 **📷 相機按鈕**，拍一張臺中的地標照片傳給我！", false, true);
+        addMessage('other',
+          `太好了！請點擊左下角的 **📷 相機按鈕**，拍一張 **${TARGET_LANDMARK}** 的照片傳給我！`,
+          false, true
+        );
         gameState = 3;
         endTurn();
         return;
@@ -402,19 +419,22 @@
         const thinkingMsg = addSystemMessage("🔍 RAG 資料庫檢索中：1935 地震紀錄...", true);
         setTimeout(() => {
           thinkingMsg.remove();
-          addMessage('other', "那場震動...我永生難忘。根據紀錄，龍騰斷橋也是那時候震毀的。但車票的線索在臺中！別分心！");
+          addMessage('other',
+            `那場震動...我永生難忘。${TARGET_LANDMARK} 也是那時候被震毀的。\n` +
+            `但車票的線索在 ${TARGET_CITY}（${TARGET_AREA}）！快把地標拍給我！`
+          );
           endTurn();
         }, 1800);
         return;
       }
 
-      addMessage('other', "我聽不太清楚...訊號干擾很嚴重。專注在車票和目的地！");
+      addMessage('other', `我聽不太清楚...訊號干擾很嚴重。專注在 ${TARGET_CITY}（${TARGET_AREA}）和 ${TARGET_LANDMARK}！`);
       endTurn();
       return;
     }
 
     if(gameState === 3){
-      addMessage('other', "我現在需要的是「影像證據」！請用相機拍下來！");
+      addMessage('other', `我現在需要的是「影像證據」！請拍下 **${TARGET_LANDMARK}**！`);
       endTurn();
       return;
     }
@@ -422,7 +442,7 @@
     endTurn();
   }
 
-  // ---- Real camera upload (with resize) ----
+  // Real camera upload (with resize)
   function flash(){
     shutterOverlay.classList.remove('flash-active');
     void shutterOverlay.offsetWidth;
@@ -453,10 +473,7 @@
           reject(err);
         }
       };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Image load failed'));
-      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
       img.src = url;
     });
   }
@@ -469,15 +486,13 @@
       if(gameState === 4) addMessage('other', "任務已完成。新的指令在訊息紀錄裡。");
       return;
     }
-
-    cameraInput.value = ""; // 允許連選同一張也會觸發 change
+    cameraInput.value = "";
     cameraInput.click();
   });
 
   cameraInput.addEventListener('change', async () => {
     const file = cameraInput.files && cameraInput.files[0];
     if(!file) return;
-
     if(gameState !== 3 || isNpcTyping) return;
 
     isNpcTyping = true;
@@ -486,20 +501,19 @@
     try{
       const dataUrl = await resizeImageFileToDataURL(file, 900, 0.85);
 
-      // ✅ 顯示使用者照片泡泡
+      // 顯示使用者照片泡泡
       addMessage('me', dataUrl, true);
 
       const multimodalMsg = addSystemMessage("👁️ Multimodal AI 正在解析影像特徵...", true);
 
-      // （前端純 HTML/JS 先做劇情模擬：若要真辨識需接後端或 API）
       setTimeout(() => {
         multimodalMsg.remove();
-        addSystemMessage("✅ 影像辨識：臺中火車站舊站 (信心度 95%)");
+        addSystemMessage(`✅ 影像辨識：${TARGET_LANDMARK} (信心度 95%)`);
 
         setTimeout(() => {
-          addMessage('other', "啊！這是...臺中車站！它長得和以前不太一樣了！不過這個建築風格我認得出來！");
-          addMessage('other', "根據我的紀錄，臺中車站的設計師是辰野金吾的學生。你找到了車票主人的線索了！");
-          addMessage('other', "🎉 **恭喜！** 獲得 **時空偵探** 稱號。新的線索已更新！");
+          addMessage('other', `太像了...！這真的是 **${TARGET_LANDMARK}**！我以前每天都會經過這裡...`);
+          addMessage('other', `原來你們的時代，它還能以另一種方式被記得。`);
+          addMessage('other', `🎉 **恭喜！** 獲得 **舊山線時空偵探** 稱號。新的線索已更新！`);
           gameState = 4;
           isNpcTyping = false;
         }, 900);
